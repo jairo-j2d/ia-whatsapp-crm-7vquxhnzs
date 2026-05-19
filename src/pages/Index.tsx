@@ -15,6 +15,7 @@ import {
   XCircle,
   Target,
   Repeat,
+  RotateCcw,
 } from 'lucide-react'
 import {
   PieChart,
@@ -289,7 +290,7 @@ export default function Index() {
     switch (status) {
       case 'em_atendimento':
         return (
-          <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-primary/30">
+          <Badge className="bg-[#8A2BE2]/20 text-[#8A2BE2] hover:bg-[#8A2BE2]/30 border-[#8A2BE2]/30">
             Em Atendimento
           </Badge>
         )
@@ -300,25 +301,137 @@ export default function Index() {
           </Badge>
         )
       case 'finalizado':
+      case 'Fechado':
         return (
-          <Badge className="bg-cyan-500/20 text-cyan-500 hover:bg-cyan-500/30 border-cyan-500/30">
-            Finalizado
+          <Badge className="bg-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00]/30 border-[#00FF00]/30">
+            {status}
           </Badge>
         )
       case 'ativo':
         return (
-          <Badge className="bg-secondary/20 text-secondary hover:bg-secondary/30 border-secondary/30">
+          <Badge className="bg-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00]/30 border-[#00FF00]/30">
             Ativo
+          </Badge>
+        )
+      case 'Novo Lead':
+      case 'Novo':
+        return (
+          <Badge className="bg-[#FFFFFF]/20 text-[#FFFFFF] hover:bg-[#FFFFFF]/30 border-[#FFFFFF]/30">
+            {status}
+          </Badge>
+        )
+      case 'Em Contato':
+        return (
+          <Badge className="bg-[#8A2BE2]/20 text-[#8A2BE2] hover:bg-[#8A2BE2]/30 border-[#8A2BE2]/30">
+            Em Contato
+          </Badge>
+        )
+      case 'Proposta Enviada':
+      case 'Perdido':
+      case 'Expirado':
+        return (
+          <Badge className="bg-[#333333]/40 text-muted-foreground hover:bg-[#333333]/50 border-[#333333]/50">
+            {status}
           </Badge>
         )
       default:
         return (
           <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
-            Inativo
+            {status || 'Inativo'}
           </Badge>
         )
     }
   }
+
+  // AI Leads Status Distribution Data
+  const aiStatusPieData = useMemo(() => {
+    const statusCounts = aiFilteredLeads.reduce(
+      (acc, lead) => {
+        const s = lead.status || 'desconhecido'
+        acc[s] = (acc[s] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>,
+    )
+
+    return [
+      { name: 'Ativo', value: statusCounts['ativo'] || 0, color: '#00FF00' },
+      { name: 'Transferido', value: statusCounts['Transferido'] || 0, color: '#8A2BE2' },
+      { name: 'Expirado', value: statusCounts['Expirado'] || 0, color: '#333333' },
+      { name: 'Novo', value: statusCounts['Novo'] || 0, color: '#FFFFFF' },
+    ].filter((d) => d.value > 0)
+  }, [aiFilteredLeads])
+
+  // AI Status Evolution Data
+  const aiStatusEvolutionData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), 6 - i))
+
+    return last7Days.map((date) => {
+      const dayStr = format(date, 'dd/MM', { locale: ptBR })
+      const ativo = aiFilteredLeads.filter(
+        (l) => l.status === 'ativo' && l.created_at && isSameDay(new Date(l.created_at), date),
+      ).length
+      const transferido = aiFilteredLeads.filter(
+        (l) =>
+          l.status === 'Transferido' && l.created_at && isSameDay(new Date(l.created_at), date),
+      ).length
+      const expirado = aiFilteredLeads.filter(
+        (l) => l.status === 'Expirado' && l.created_at && isSameDay(new Date(l.created_at), date),
+      ).length
+
+      return { name: dayStr, Ativo: ativo, Transferido: transferido, Expirado: expirado }
+    })
+  }, [aiFilteredLeads])
+
+  // Expired Leads Reactivated KPI
+  const reactivatedExpiredLeadsCount = useMemo(() => {
+    const now = new Date()
+    return aiFilteredLeads.filter((l) => {
+      const isActive = ['ativo', 'em_atendimento'].includes(l.status || '')
+      const wasExpired = l.transfer_expires_at && new Date(l.transfer_expires_at) < now
+      return isActive && wasExpired
+    }).length
+  }, [aiFilteredLeads])
+
+  // CRM Funnel Data
+  const crmFunnelData = useMemo(() => {
+    const statusCounts = filteredLeads.reduce(
+      (acc, lead) => {
+        const s = lead.status || 'Desconhecido'
+        acc[s] = (acc[s] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>,
+    )
+
+    return [
+      { name: 'Novo Lead', value: statusCounts['Novo Lead'] || 0, fill: '#00FF00' },
+      { name: 'Em Contato', value: statusCounts['Em Contato'] || 0, fill: '#8A2BE2' },
+      { name: 'Proposta Enviada', value: statusCounts['Proposta Enviada'] || 0, fill: '#333333' },
+      { name: 'Fechado', value: statusCounts['Fechado'] || 0, fill: '#00FF00' },
+      { name: 'Perdido', value: statusCounts['Perdido'] || 0, fill: '#333333' },
+    ]
+  }, [filteredLeads])
+
+  // CRM Funnel Evolution Data
+  const crmFunnelEvolutionData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), 6 - i))
+
+    return last7Days.map((date) => {
+      const dayStr = format(date, 'dd/MM', { locale: ptBR })
+      const funnelLeads = filteredLeads.filter(
+        (l) =>
+          ['Novo Lead', 'Em Contato', 'Proposta Enviada'].includes(l.status || '') &&
+          l.created_at &&
+          isSameDay(new Date(l.created_at), date),
+      ).length
+      const closedLeads = filteredLeads.filter(
+        (l) => l.status === 'Fechado' && l.created_at && isSameDay(new Date(l.created_at), date),
+      ).length
+
+      return { name: dayStr, 'Leads no Funil': funnelLeads, 'Leads Fechados': closedLeads }
+    })
+  }, [filteredLeads])
 
   if (loading) {
     return (
@@ -640,7 +753,240 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Lead Distribution Section (IA and CRM) */}
+      <div id="lead_distribution_status" className="space-y-4 pt-4 border-t border-border/50">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Activity className="w-6 h-6 text-primary" />
+          Distribuição e Status dos Leads (IA e CRM)
+        </h2>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* AI Lead Status Pie Chart */}
+          <Card className="bg-card border-border flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium text-white">Status Agente IA</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-[300px]">
+              {aiStatusPieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={aiStatusPieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {aiStatusPieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(10,10,10,0.9)',
+                        border: '1px solid #333',
+                        borderRadius: '8px',
+                      }}
+                      itemStyle={{ color: '#fff' }}
+                    />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  Sem dados suficientes
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* AI Lead Status Evolution Line Chart */}
+          <Card className="bg-card border-border flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg font-medium text-white">
+                Evolução de Status (IA)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={aiStatusEvolutionData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#666"
+                    tick={{ fill: '#9CA3AF' }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="#666"
+                    tick={{ fill: '#9CA3AF' }}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(10,10,10,0.9)',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                    }}
+                    labelStyle={{ color: '#9CA3AF' }}
+                  />
+                  <Legend verticalAlign="top" height={36} iconType="circle" />
+                  <Line
+                    type="monotone"
+                    dataKey="Ativo"
+                    stroke="#00FF00"
+                    strokeWidth={3}
+                    dot={{ r: 4, strokeWidth: 0 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="Transferido"
+                    stroke="#8A2BE2"
+                    strokeWidth={3}
+                    dot={{ r: 4, strokeWidth: 0 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="Expirado"
+                    stroke="#333333"
+                    strokeWidth={3}
+                    dot={{ r: 4, strokeWidth: 0 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Expired Leads KPI */}
+          <div className="lg:col-span-2">
+            <Card className="bg-black border-[#333333] shadow-[0_4px_20px_-2px_rgba(51,51,51,0.5)] rounded-lg">
+              <CardContent className="p-6 flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Leads Expirados (Reativados)
+                  </p>
+                  <p className="text-3xl font-bold text-[#999999]">
+                    {reactivatedExpiredLeadsCount}
+                  </p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-[#333333]/30 flex items-center justify-center border border-[#333333]/50">
+                  <RotateCcw className="text-[#999999] w-6 h-6" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* CRM Funnel Stage Bar Chart */}
+          <Card className="bg-card border-border flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium text-white">Funil de Vendas CRM</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={crmFunnelData}
+                  layout="vertical"
+                  margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    stroke="#666"
+                    tick={{ fill: '#9CA3AF' }}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    stroke="#666"
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={100}
+                  />
+                  <RechartsTooltip
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    contentStyle={{
+                      backgroundColor: 'rgba(10,10,10,0.9)',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                    }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* CRM Funnel Evolution Line Chart */}
+          <Card className="bg-card border-border flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium text-white">Evolução do Funil</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={crmFunnelEvolutionData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#666"
+                    tick={{ fill: '#9CA3AF' }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="#666"
+                    tick={{ fill: '#9CA3AF' }}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(10,10,10,0.9)',
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                    }}
+                    labelStyle={{ color: '#9CA3AF' }}
+                  />
+                  <Legend verticalAlign="top" height={36} iconType="circle" />
+                  <Line
+                    type="monotone"
+                    dataKey="Leads no Funil"
+                    stroke="#8A2BE2"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#8A2BE2', strokeWidth: 0 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="Leads Fechados"
+                    stroke="#00FF00"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#00FF00', strokeWidth: 0 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
         {/* Pie Chart */}
         <Card className="bg-card border-border col-span-1 flex flex-col">
           <CardHeader>
