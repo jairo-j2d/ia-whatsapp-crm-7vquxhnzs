@@ -142,7 +142,19 @@ export type Database = {
       }
     }
     Enums: {
-      lead_status: 'ativo' | 'em_atendimento' | 'Transferido' | 'finalizado' | 'inativo'
+      lead_status:
+        | 'ativo'
+        | 'em_atendimento'
+        | 'Transferido'
+        | 'finalizado'
+        | 'inativo'
+        | 'Novo Lead'
+        | 'Em Contato'
+        | 'Proposta Enviada'
+        | 'Fechado'
+        | 'Perdido'
+        | 'Expirado'
+        | 'Novo'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -268,7 +280,20 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      lead_status: ['ativo', 'em_atendimento', 'Transferido', 'finalizado', 'inativo'],
+      lead_status: [
+        'ativo',
+        'em_atendimento',
+        'Transferido',
+        'finalizado',
+        'inativo',
+        'Novo Lead',
+        'Em Contato',
+        'Proposta Enviada',
+        'Fechado',
+        'Perdido',
+        'Expirado',
+        'Novo',
+      ],
     },
   },
 } as const

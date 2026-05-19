@@ -7,6 +7,9 @@ export type Lead = LeadRow & {
   lead_type?: string | null
   responsible_name?: string | null
   lead_source?: string | null
+  sale_value?: number | null
+  lost_reason?: string | null
+  lead_quality_feedback?: string | null
 }
 
 export const leadsService = {

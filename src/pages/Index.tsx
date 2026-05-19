@@ -16,6 +16,10 @@ import {
   Target,
   Repeat,
   RotateCcw,
+  DollarSign,
+  TrendingUp,
+  Timer,
+  MessageSquareWarning,
 } from 'lucide-react'
 import {
   PieChart,
@@ -431,6 +435,72 @@ export default function Index() {
 
       return { name: dayStr, 'Leads no Funil': funnelLeads, 'Leads Fechados': closedLeads }
     })
+  }, [filteredLeads])
+
+  // ROI & Conversion KPIs
+  const aiClosedLeads = useMemo(
+    () => aiFilteredLeads.filter((l) => l.status === 'Fechado'),
+    [aiFilteredLeads],
+  )
+  const aiTransferredOrFurther = useMemo(
+    () =>
+      aiFilteredLeads.filter((l) =>
+        ['Transferido', 'Em Contato', 'Proposta Enviada', 'Fechado', 'Perdido'].includes(
+          l.status || '',
+        ),
+      ),
+    [aiFilteredLeads],
+  )
+
+  const aiConversionToSaleRate =
+    aiTransferredOrFurther.length > 0
+      ? Math.round((aiClosedLeads.length / aiTransferredOrFurther.length) * 100)
+      : 0
+
+  const totalSalesValue = useMemo(
+    () => aiClosedLeads.reduce((acc, l) => acc + (Number(l.sale_value) || 0), 0),
+    [aiClosedLeads],
+  )
+  const formattedTotalSales = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(totalSalesValue)
+
+  const avgConversionTimeDays = useMemo(() => {
+    const conversionTimes = aiClosedLeads
+      .map((l) => {
+        if (l.created_at && l.status_updated_at) {
+          return new Date(l.status_updated_at).getTime() - new Date(l.created_at).getTime()
+        }
+        return 0
+      })
+      .filter((t) => t > 0)
+
+    if (conversionTimes.length === 0) return 0
+    const avgMs = conversionTimes.reduce((a, b) => a + b, 0) / conversionTimes.length
+    return Math.round(avgMs / (1000 * 60 * 60 * 24))
+  }, [aiClosedLeads])
+
+  const lostLeads = useMemo(
+    () => filteredLeads.filter((l) => l.status === 'Perdido'),
+    [filteredLeads],
+  )
+  const lostReasonsData = useMemo(() => {
+    const counts = lostLeads.reduce(
+      (acc, l) => {
+        const reason = l.lost_reason || 'Não informado'
+        acc[reason] = (acc[reason] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>,
+    )
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+  }, [lostLeads])
+
+  const feedbacks = useMemo(() => {
+    return filteredLeads.filter((l) => l.lead_quality_feedback).slice(0, 10) // Limit to 10 for UI
   }, [filteredLeads])
 
   if (loading) {
@@ -981,6 +1051,152 @@ export default function Index() {
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* ROI and Conversion Dashboard Section */}
+      <div id="conversion_roi_analysis" className="space-y-4 pt-4 border-t border-border/50">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <TrendingUp className="w-6 h-6 text-[#00FF00]" />
+          Análise de Conversão e ROI (CRM)
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-black border-[#00FF00]/30 shadow-[0_4px_20px_-2px_rgba(0,255,0,0.15)] rounded-lg">
+            <CardContent className="p-6 flex flex-row items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Taxa de Conversão (IA {`->`} Venda)
+                </p>
+                <p className="text-3xl font-bold text-[#00FF00]">{aiConversionToSaleRate}%</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-[#00FF00]/10 flex items-center justify-center border border-[#00FF00]/20">
+                <TrendingUp className="text-[#00FF00] w-6 h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-black border-[#00FF00]/30 shadow-[0_4px_20px_-2px_rgba(0,255,0,0.15)] rounded-lg">
+            <CardContent className="p-6 flex flex-row items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">Vendas Geradas (IA)</p>
+                <p
+                  className="text-3xl font-bold text-[#00FF00] truncate max-w-[150px]"
+                  title={formattedTotalSales}
+                >
+                  {formattedTotalSales}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-[#00FF00]/10 flex items-center justify-center border border-[#00FF00]/20">
+                <DollarSign className="text-[#00FF00] w-6 h-6" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-black border-[#8A2BE2]/30 shadow-[0_4px_20px_-2px_rgba(138,43,226,0.15)] rounded-lg">
+            <CardContent className="p-6 flex flex-row items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Tempo Médio Conversão (Venda)
+                </p>
+                <p className="text-3xl font-bold text-[#8A2BE2]">
+                  {avgConversionTimeDays}{' '}
+                  <span className="text-lg text-muted-foreground">dias</span>
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-[#8A2BE2]/10 flex items-center justify-center border border-[#8A2BE2]/20">
+                <Timer className="text-[#8A2BE2] w-6 h-6" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <Card className="bg-card border-border flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium text-white flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-[#333333]" />
+                Principais Motivos de Perda (CRM)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-[300px]">
+              {lostReasonsData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={lostReasonsData}
+                    layout="vertical"
+                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      stroke="#666"
+                      tick={{ fill: '#9CA3AF' }}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      stroke="#666"
+                      tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={120}
+                    />
+                    <RechartsTooltip
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                      contentStyle={{
+                        backgroundColor: 'rgba(10,10,10,0.9)',
+                        border: '1px solid #333',
+                        borderRadius: '8px',
+                      }}
+                      itemStyle={{ color: '#fff' }}
+                    />
+                    <Bar dataKey="value" fill="#333333" radius={[0, 4, 4, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  Nenhum motivo de perda registrado
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-lg font-medium text-white flex items-center gap-2">
+                <MessageSquareWarning className="w-5 h-5 text-primary" />
+                Feedback de Qualidade do Lead
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-auto max-h-[350px]">
+              {feedbacks.length > 0 ? (
+                <div className="space-y-4 pr-2">
+                  {feedbacks.map((f) => (
+                    <div
+                      key={f.id}
+                      className="p-4 rounded-lg bg-black/40 border border-border/50 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-white text-sm">{f.nome}</span>
+                        {getStatusBadge(f.status)}
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        &quot;{f.lead_quality_feedback}&quot;
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground py-10">
+                  Nenhum feedback registrado
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
