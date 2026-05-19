@@ -40,9 +40,17 @@ export const leadsService = {
   },
 
   subscribeToLeads(callback: (payload: any) => void) {
-    return supabase
-      .channel('leads-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'LeadsWA' }, callback)
-      .subscribe()
+    const channel = supabase.channel('leads-changes')
+
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'LeadsWA' }, callback)
+    channel.subscribe()
+
+    return channel
+  },
+
+  unsubscribeLeads(channel: any) {
+    if (channel) {
+      supabase.removeChannel(channel)
+    }
   },
 }

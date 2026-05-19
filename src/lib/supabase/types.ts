@@ -55,11 +55,14 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          lead_quality_feedback: string | null
           lead_source: string | null
           lead_type: string | null
+          lost_reason: string | null
           nome: string
           phone: string | null
           responsible_name: string | null
+          sale_value: number | null
           status: string | null
           status_updated_at: string | null
           transfer_expires_at: string | null
@@ -67,11 +70,14 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          lead_quality_feedback?: string | null
           lead_source?: string | null
           lead_type?: string | null
+          lost_reason?: string | null
           nome: string
           phone?: string | null
           responsible_name?: string | null
+          sale_value?: number | null
           status?: string | null
           status_updated_at?: string | null
           transfer_expires_at?: string | null
@@ -79,11 +85,14 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          lead_quality_feedback?: string | null
           lead_source?: string | null
           lead_type?: string | null
+          lost_reason?: string | null
           nome?: string
           phone?: string | null
           responsible_name?: string | null
+          sale_value?: number | null
           status?: string | null
           status_updated_at?: string | null
           transfer_expires_at?: string | null
@@ -319,6 +328,9 @@ export const Constants = {
 //   lead_type: text (nullable)
 //   responsible_name: text (nullable)
 //   lead_source: text (nullable, default: 'Agente IA'::text)
+//   sale_value: numeric (nullable)
+//   lost_reason: text (nullable)
+//   lead_quality_feedback: text (nullable)
 // Table: documents
 //   id: bigint (not null, default: nextval('documents_id_seq'::regclass))
 //   content: text (nullable)

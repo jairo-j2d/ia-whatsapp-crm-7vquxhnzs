@@ -3,7 +3,7 @@ import { leadsService, Lead } from '@/services/leads'
 import { memoryService, Memory } from '@/services/memory'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Search, Filter, Phone, Clock, User, MessageSquare } from 'lucide-react'
+import { Search, Filter, Phone, Clock, User, MessageSquare, Activity } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -39,11 +39,11 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchLeads()
-    const subscription = leadsService.subscribeToLeads(() => {
+    const channel = leadsService.subscribeToLeads(() => {
       fetchLeads()
     })
     return () => {
-      subscription.then((sub) => sub.unsubscribe())
+      leadsService.unsubscribeLeads(channel)
     }
   }, [])
 
