@@ -12,6 +12,9 @@ import {
   Percent,
   Clock,
   CheckCircle,
+  XCircle,
+  Target,
+  Repeat,
 } from 'lucide-react'
 import {
   PieChart,
@@ -22,6 +25,8 @@ import {
   Legend,
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -234,6 +239,51 @@ export default function Index() {
     const seconds = Math.floor(avgSeconds % 60)
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }, [chatHistories])
+
+  // Qualification & Transfer KPIs
+  const qualifiedLeads = useMemo(
+    () =>
+      aiFilteredLeads.filter((l) =>
+        ['em_atendimento', 'Transferido', 'finalizado'].includes(l.status || ''),
+      ),
+    [aiFilteredLeads],
+  )
+  const disqualifiedLeads = useMemo(
+    () => aiFilteredLeads.filter((l) => l.status === 'inativo'),
+    [aiFilteredLeads],
+  )
+
+  const totalQualified = qualifiedLeads.length
+  const totalDisqualified = disqualifiedLeads.length
+  const qualificationRate =
+    aiFilteredLeads.length > 0 ? Math.round((totalQualified / aiFilteredLeads.length) * 100) : 0
+
+  const transferredLeads = useMemo(
+    () => aiFilteredLeads.filter((l) => l.status === 'Transferido'),
+    [aiFilteredLeads],
+  )
+  const totalTransferred = transferredLeads.length
+  const transferToCrmRate =
+    totalQualified > 0 ? Math.round((totalTransferred / totalQualified) * 100) : 0
+
+  const barData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), 6 - i))
+
+    return last7Days.map((date) => {
+      const dayStr = format(date, 'dd/MM', { locale: ptBR })
+      const qual = qualifiedLeads.filter(
+        (l) => l.created_at && isSameDay(new Date(l.created_at), date),
+      ).length
+      const disq = disqualifiedLeads.filter(
+        (l) => l.created_at && isSameDay(new Date(l.created_at), date),
+      ).length
+      return {
+        name: dayStr,
+        Qualificados: qual,
+        Desqualificados: disq,
+      }
+    })
+  }, [qualifiedLeads, disqualifiedLeads])
 
   const getStatusBadge = (status: string | null) => {
     switch (status) {
@@ -458,6 +508,136 @@ export default function Index() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Qualification & Transfer Section */}
+      <div id="qualification_transfer_performance" className="space-y-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <Target className="w-6 h-6 text-primary" />
+          Qualificação e Transferência (Agente IA para CRM)
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="lg:col-span-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+            <Card className="bg-black border-[#8A2BE2]/30 shadow-[0_4px_20px_-2px_rgba(138,43,226,0.15)] rounded-lg flex flex-col justify-center">
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                  <p className="text-xs font-medium text-muted-foreground">Leads Qualificados</p>
+                  <CheckCircle className="text-[#8A2BE2] w-4 h-4" />
+                </div>
+                <p id="total_leads_qualified" className="text-2xl font-bold text-[#8A2BE2]">
+                  {totalQualified}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-black border-[#333333] shadow-[0_4px_20px_-2px_rgba(51,51,51,0.5)] rounded-lg flex flex-col justify-center">
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                  <p className="text-xs font-medium text-muted-foreground">Leads Desqual.</p>
+                  <XCircle className="text-[#999999] w-4 h-4" />
+                </div>
+                <p id="total_leads_disqualified" className="text-2xl font-bold text-[#999999]">
+                  {totalDisqualified}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-black border-[#8A2BE2]/30 shadow-[0_4px_20px_-2px_rgba(138,43,226,0.15)] rounded-lg flex flex-col justify-center sm:col-span-2 lg:col-span-1 xl:col-span-2">
+              <CardContent className="p-4 flex flex-row items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Taxa de Qualificação (IA)
+                  </p>
+                  <p id="ia_qualification_rate" className="text-3xl font-bold text-[#8A2BE2]">
+                    {qualificationRate}%
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-[#8A2BE2]/10 flex items-center justify-center border border-[#8A2BE2]/20">
+                  <Percent className="text-[#8A2BE2] w-5 h-5" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-black border-[#00FF00]/30 shadow-[0_4px_20px_-2px_rgba(0,255,0,0.15)] rounded-lg flex flex-col justify-center">
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                  <p className="text-xs font-medium text-muted-foreground">Transferidos (CRM)</p>
+                  <Repeat className="text-[#00FF00] w-4 h-4" />
+                </div>
+                <p
+                  id="total_leads_transferred_to_crm"
+                  className="text-2xl font-bold text-[#00FF00]"
+                >
+                  {totalTransferred}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-black border-[#00FF00]/30 shadow-[0_4px_20px_-2px_rgba(0,255,0,0.15)] rounded-lg flex flex-col justify-center">
+              <CardContent className="p-4 flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                  <p className="text-xs font-medium text-muted-foreground">Taxa Transf.</p>
+                  <Percent className="text-[#00FF00] w-4 h-4" />
+                </div>
+                <p id="transfer_to_crm_rate" className="text-2xl font-bold text-[#00FF00]">
+                  {transferToCrmRate}%
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-2">
+            <Card className="bg-card border-border h-full flex flex-col">
+              <CardHeader>
+                <CardTitle
+                  id="qualified_vs_disqualified_chart"
+                  className="text-lg font-medium text-white"
+                >
+                  Leads Qualificados vs. Desqualificados pelo IA
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 min-h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      stroke="#666"
+                      tick={{ fill: '#9CA3AF' }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="#666"
+                      tick={{ fill: '#9CA3AF' }}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <RechartsTooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(10,10,10,0.9)',
+                        border: '1px solid #333',
+                        borderRadius: '8px',
+                      }}
+                      itemStyle={{ color: '#fff' }}
+                      labelStyle={{ color: '#9CA3AF' }}
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    />
+                    <Legend verticalAlign="top" height={36} iconType="circle" />
+                    <Bar dataKey="Qualificados" fill="#8A2BE2" radius={[4, 4, 0, 0]} barSize={24} />
+                    <Bar
+                      dataKey="Desqualificados"
+                      fill="#333333"
+                      radius={[4, 4, 0, 0]}
+                      barSize={24}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
