@@ -55,8 +55,11 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          lead_source: string | null
+          lead_type: string | null
           nome: string
           phone: string | null
+          responsible_name: string | null
           status: string | null
           status_updated_at: string | null
           transfer_expires_at: string | null
@@ -64,8 +67,11 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          lead_source?: string | null
+          lead_type?: string | null
           nome: string
           phone?: string | null
+          responsible_name?: string | null
           status?: string | null
           status_updated_at?: string | null
           transfer_expires_at?: string | null
@@ -73,8 +79,11 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          lead_source?: string | null
+          lead_type?: string | null
           nome?: string
           phone?: string | null
+          responsible_name?: string | null
           status?: string | null
           status_updated_at?: string | null
           transfer_expires_at?: string | null
@@ -282,6 +291,9 @@ export const Constants = {
 //   created_at: timestamp with time zone (nullable, default: now())
 //   status_updated_at: timestamp with time zone (nullable)
 //   transfer_expires_at: timestamp with time zone (nullable)
+//   lead_type: text (nullable)
+//   responsible_name: text (nullable)
+//   lead_source: text (nullable, default: 'Agente IA'::text)
 // Table: documents
 //   id: bigint (not null, default: nextval('documents_id_seq'::regclass))
 //   content: text (nullable)

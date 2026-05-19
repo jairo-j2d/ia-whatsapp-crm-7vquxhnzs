@@ -19,6 +19,12 @@ export const leadsService = {
     return data as Lead[]
   },
 
+  async getChatHistories() {
+    const { data, error } = await supabase.from('n8n_chat_histories').select('*')
+    if (error) throw error
+    return data as any[]
+  },
+
   async updateLeadStatus(id: string, status: Database['public']['Enums']['lead_status']) {
     const { data, error } = await supabase
       .from('LeadsWA')
