@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { leadsService, Lead } from '@/services/leads'
-import { Activity, Users, PhoneForwarded, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Activity, Users, PhoneForwarded, CheckCircle2, ArrowRight, Filter } from 'lucide-react'
 import {
   PieChart,
   Pie,
@@ -19,10 +19,23 @@ import { format, subDays, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export default function Index() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Filter States
+  const [timePeriod, setTimePeriod] = useState('Mensal')
+  const [leadType, setLeadType] = useState('Todos')
+  const [responsible, setResponsible] = useState('Todos')
+  const [leadSource, setLeadSource] = useState('Agente IA')
 
   useEffect(() => {
     fetchLeads()
@@ -47,16 +60,56 @@ export default function Index() {
     }
   }
 
+  // Dynamic values for dropdowns based on actual data
+  const responsibles = useMemo(() => {
+    const resps = new Set(leads.map((l) => l.responsible_name).filter(Boolean))
+    return ['Todos', ...Array.from(resps)] as string[]
+  }, [leads])
+
+  // Filtered Leads
+  const filteredLeads = useMemo(() => {
+    let result = leads
+
+    const now = new Date()
+
+    // Time Period Filter
+    if (timePeriod === 'Diário') {
+      result = result.filter((l) => l.created_at && isSameDay(new Date(l.created_at), now))
+    } else if (timePeriod === 'Semanal') {
+      result = result.filter((l) => l.created_at && new Date(l.created_at) >= subDays(now, 7))
+    } else if (timePeriod === 'Mensal') {
+      result = result.filter((l) => l.created_at && new Date(l.created_at) >= subDays(now, 30))
+    }
+    // "Personalizado" does not filter by default in this implementation
+
+    // Lead Type Filter
+    if (leadType !== 'Todos') {
+      result = result.filter((l) => l.lead_type === leadType)
+    }
+
+    // Responsible Filter
+    if (responsible !== 'Todos') {
+      result = result.filter((l) => l.responsible_name === responsible)
+    }
+
+    // Lead Source Filter
+    if (leadSource !== 'Todos') {
+      result = result.filter((l) => l.lead_source === leadSource)
+    }
+
+    return result
+  }, [leads, timePeriod, leadType, responsible, leadSource])
+
   // KPIs
-  const totalLeads = leads.length
-  const activeConversations = leads.filter((l) => l.status === 'em_atendimento').length
-  const handovers = leads.filter((l) => l.status === 'Transferido').length
-  const finished = leads.filter((l) => l.status === 'finalizado').length
+  const totalLeads = filteredLeads.length
+  const activeConversations = filteredLeads.filter((l) => l.status === 'em_atendimento').length
+  const handovers = filteredLeads.filter((l) => l.status === 'Transferido').length
+  const finished = filteredLeads.filter((l) => l.status === 'finalizado').length
   const conversionRate = totalLeads > 0 ? Math.round((finished / totalLeads) * 100) : 0
 
   // Chart Data: Status Distribution
   const pieData = useMemo(() => {
-    const statusCounts = leads.reduce(
+    const statusCounts = filteredLeads.reduce(
       (acc, lead) => {
         const s = lead.status || 'desconhecido'
         acc[s] = (acc[s] || 0) + 1
@@ -72,7 +125,7 @@ export default function Index() {
       { name: 'Finalizado', value: statusCounts['finalizado'] || 0, color: '#00BFFF' },
       { name: 'Inativo', value: statusCounts['inativo'] || 0, color: '#808080' },
     ].filter((d) => d.value > 0)
-  }, [leads])
+  }, [filteredLeads])
 
   // Chart Data: Activity Timeline (Last 7 days)
   const lineData = useMemo(() => {
@@ -80,7 +133,7 @@ export default function Index() {
 
     return last7Days.map((date) => {
       const dayStr = format(date, 'dd/MM', { locale: ptBR })
-      const createdThatDay = leads.filter(
+      const createdThatDay = filteredLeads.filter(
         (l) => l.created_at && isSameDay(new Date(l.created_at), date),
       ).length
       return {
@@ -88,9 +141,9 @@ export default function Index() {
         leads: createdThatDay,
       }
     })
-  }, [leads])
+  }, [filteredLeads])
 
-  const recentLeads = leads.slice(0, 5)
+  const recentLeads = filteredLeads.slice(0, 5)
 
   const getStatusBadge = (status: string | null) => {
     switch (status) {
@@ -137,6 +190,76 @@ export default function Index() {
 
   return (
     <div className="space-y-8 animate-slide-up">
+      {/* Advanced Filter Bar */}
+      <Card className="bg-card border-border glow-shadow">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex items-center mb-4 text-white">
+            <Filter className="w-5 h-5 mr-2 text-primary" />
+            <h2 className="text-lg font-bold">Filtros de Performance</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Período</label>
+              <Select value={timePeriod} onValueChange={setTimePeriod}>
+                <SelectTrigger className="w-full bg-black/50 border-border text-white focus:ring-primary">
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-white">
+                  <SelectItem value="Diário">Diário</SelectItem>
+                  <SelectItem value="Semanal">Semanal</SelectItem>
+                  <SelectItem value="Mensal">Mensal</SelectItem>
+                  <SelectItem value="Personalizado">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Tipo de Lead</label>
+              <Select value={leadType} onValueChange={setLeadType}>
+                <SelectTrigger className="w-full bg-black/50 border-border text-white focus:ring-primary">
+                  <SelectValue placeholder="Tipo de Lead" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-white">
+                  <SelectItem value="Todos">Todos</SelectItem>
+                  <SelectItem value="Novo">Novo</SelectItem>
+                  <SelectItem value="Existente">Existente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Responsável CRM</label>
+              <Select value={responsible} onValueChange={setResponsible}>
+                <SelectTrigger className="w-full bg-black/50 border-border text-white focus:ring-primary">
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-white">
+                  {responsibles.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Origem do Lead</label>
+              <Select value={leadSource} onValueChange={setLeadSource}>
+                <SelectTrigger className="w-full bg-black/50 border-border text-white focus:ring-primary">
+                  <SelectValue placeholder="Origem" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-white">
+                  <SelectItem value="Todos">Todos</SelectItem>
+                  <SelectItem value="Agente IA">Agente IA</SelectItem>
+                  <SelectItem value="Outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-card border-border glow-shadow">
@@ -295,6 +418,7 @@ export default function Index() {
                 <tr>
                   <th className="px-4 py-3 font-medium">Nome</th>
                   <th className="px-4 py-3 font-medium">WhatsApp</th>
+                  <th className="px-4 py-3 font-medium">Origem</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Data</th>
                 </tr>
@@ -307,6 +431,7 @@ export default function Index() {
                   >
                     <td className="px-4 py-3 font-medium text-white">{lead.nome}</td>
                     <td className="px-4 py-3 text-muted-foreground">{lead.phone || '-'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{lead.lead_source || '-'}</td>
                     <td className="px-4 py-3">{getStatusBadge(lead.status)}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {lead.created_at
@@ -317,8 +442,8 @@ export default function Index() {
                 ))}
                 {recentLeads.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
-                      Nenhum lead encontrado.
+                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                      Nenhum lead encontrado com os filtros selecionados.
                     </td>
                   </tr>
                 )}

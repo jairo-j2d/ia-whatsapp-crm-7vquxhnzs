@@ -317,22 +317,28 @@ export const Constants = {
 
 // --- ROW LEVEL SECURITY POLICIES ---
 // Table: LeadsWA
+//   Policy "leadswa_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 //   Policy "permite" (ALL, PERMISSIVE) roles={public}
 //     USING: true
 // Table: documents
+//   Policy "documents_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 //   Policy "n8n" (ALL, PERMISSIVE) roles={public}
 //     USING: true
+// Table: familiares
+//   Policy "familiares_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: memória
+//   Policy "memoria_all" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
 // Table: n8n_chat_histories
 //   Policy "n8n" (ALL, PERMISSIVE) roles={public}
 //     USING: true
-
-// --- WARNING: TABLES WITH RLS ENABLED BUT NO POLICIES ---
-// These tables have Row Level Security enabled but NO policies defined.
-// This means ALL queries (SELECT, INSERT, UPDATE, DELETE) will return ZERO rows
-// for non-superuser roles (including the anon and authenticated roles used by the app).
-// You MUST create RLS policies for these tables to allow data access.
-//   - familiares
-//   - memória
 
 // --- DATABASE FUNCTIONS ---
 // FUNCTION match_documents(vector, integer, jsonb)

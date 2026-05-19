@@ -1,7 +1,13 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
 
-export type Lead = Database['public']['Tables']['LeadsWA']['Row']
+export type LeadRow = Database['public']['Tables']['LeadsWA']['Row']
+
+export type Lead = LeadRow & {
+  lead_type?: string | null
+  responsible_name?: string | null
+  lead_source?: string | null
+}
 
 export const leadsService = {
   async getLeads() {
