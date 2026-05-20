@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { leadsService, Lead } from '@/services/leads'
 import { memoryService, Memory } from '@/services/memory'
+import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Search, Filter, Phone, Clock, User, MessageSquare, Activity } from 'lucide-react'
@@ -37,21 +38,39 @@ export default function LeadsPage() {
   const [loadingMemories, setLoadingMemories] = useState(false)
   const { toast } = useToast()
 
+  const isSubscribing = useRef(false)
+  const channelRef = useRef<any>(null)
+
   useEffect(() => {
     let isMounted = true
 
     fetchLeads()
 
-    const channel = leadsService.subscribeToLeads(() => {
-      if (isMounted) {
-        fetchLeads()
-      }
-    })
+    if (isSubscribing.current || channelRef.current) {
+      return
+    }
+
+    isSubscribing.current = true
+
+    try {
+      const channel = leadsService.subscribeToLeads(() => {
+        if (isMounted) {
+          fetchLeads()
+        }
+      })
+
+      channelRef.current = channel
+    } finally {
+      isSubscribing.current = false
+    }
 
     return () => {
       isMounted = false
-      if (channel) {
-        leadsService.unsubscribeLeads(channel)
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current).catch((err) => {
+          console.error('Error in deterministic cleanup:', err)
+        })
+        channelRef.current = null
       }
     }
   }, [])
