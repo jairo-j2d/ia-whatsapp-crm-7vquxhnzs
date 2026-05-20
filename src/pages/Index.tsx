@@ -152,13 +152,24 @@ export default function Index() {
       {} as Record<string, number>,
     )
 
-    return [
-      { name: 'Em Atendimento', value: statusCounts['em_atendimento'] || 0, color: '#8A2BE2' },
-      { name: 'Ativo', value: statusCounts['ativo'] || 0, color: '#00FF00' },
-      { name: 'Transferido', value: statusCounts['Transferido'] || 0, color: '#FF4500' },
-      { name: 'Finalizado', value: statusCounts['finalizado'] || 0, color: '#00BFFF' },
-      { name: 'Inativo', value: statusCounts['inativo'] || 0, color: '#808080' },
-    ].filter((d) => d.value > 0)
+    const allStatuses = [
+      { key: 'em_atendimento', name: 'Em Atendimento', color: '#8A2BE2' },
+      { key: 'ativo', name: 'Ativo', color: '#00FF00' },
+      { key: 'Transferido', name: 'Transferido', color: '#FF4500' },
+      { key: 'finalizado', name: 'Finalizado', color: '#00BFFF' },
+      { key: 'inativo', name: 'Inativo', color: '#EF4444' },
+      { key: 'Novo Lead', name: 'Novo Lead', color: '#FFFFFF' },
+      { key: 'Em Contato', name: 'Em Contato', color: '#8A2BE2' },
+      { key: 'Proposta Enviada', name: 'Proposta Enviada', color: '#333333' },
+      { key: 'Fechado', name: 'Fechado', color: '#00FF00' },
+      { key: 'Perdido', name: 'Perdido', color: '#333333' },
+      { key: 'Expirado', name: 'Expirado', color: '#333333' },
+      { key: 'Novo', name: 'Novo', color: '#FFFFFF' },
+    ]
+
+    return allStatuses
+      .map((s) => ({ name: s.name, value: statusCounts[s.key] || 0, color: s.color }))
+      .filter((d) => d.value > 0)
   }, [filteredLeads])
 
   // Chart Data: Activity Timeline (Last 7 days)
@@ -244,7 +255,7 @@ export default function Index() {
     })
 
     if (validSessions === 0) {
-      return '04:30' // Fallback to avoid empty state if no parsable timestamps
+      return '--:--'
     }
 
     const avgSeconds = totalDurationSeconds / validSessions
@@ -346,6 +357,12 @@ export default function Index() {
             {status}
           </Badge>
         )
+      case 'inativo':
+        return (
+          <Badge className="bg-red-500/20 text-red-500 hover:bg-red-500/30 border-red-500/30">
+            Inativo
+          </Badge>
+        )
       default:
         return (
           <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
@@ -366,12 +383,18 @@ export default function Index() {
       {} as Record<string, number>,
     )
 
-    return [
-      { name: 'Ativo', value: statusCounts['ativo'] || 0, color: '#00FF00' },
-      { name: 'Transferido', value: statusCounts['Transferido'] || 0, color: '#8A2BE2' },
-      { name: 'Expirado', value: statusCounts['Expirado'] || 0, color: '#333333' },
-      { name: 'Novo', value: statusCounts['Novo'] || 0, color: '#FFFFFF' },
-    ].filter((d) => d.value > 0)
+    const allAiStatuses = [
+      { key: 'ativo', name: 'Ativo', color: '#00FF00' },
+      { key: 'em_atendimento', name: 'Em Atendimento', color: '#8A2BE2' },
+      { key: 'Transferido', name: 'Transferido', color: '#FF4500' },
+      { key: 'finalizado', name: 'Finalizado', color: '#00BFFF' },
+      { key: 'inativo', name: 'Inativo', color: '#EF4444' },
+      { key: 'Expirado', name: 'Expirado', color: '#333333' },
+      { key: 'Novo', name: 'Novo', color: '#FFFFFF' },
+    ]
+    return allAiStatuses
+      .map((s) => ({ name: s.name, value: statusCounts[s.key] || 0, color: s.color }))
+      .filter((d) => d.value > 0)
   }, [aiFilteredLeads])
 
   // AI Status Evolution Data
@@ -560,12 +583,6 @@ export default function Index() {
                       {t}
                     </SelectItem>
                   ))}
-                  {leadTypesList.length === 1 && (
-                    <>
-                      <SelectItem value="Novo">Novo</SelectItem>
-                      <SelectItem value="Existente">Existente</SelectItem>
-                    </>
-                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -598,9 +615,6 @@ export default function Index() {
                       {s}
                     </SelectItem>
                   ))}
-                  {leadSourcesList.length === 1 && (
-                    <SelectItem value="Agente IA">Agente IA</SelectItem>
-                  )}
                 </SelectContent>
               </Select>
             </div>

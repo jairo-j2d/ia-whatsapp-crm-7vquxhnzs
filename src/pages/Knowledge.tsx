@@ -121,7 +121,10 @@ export default function KnowledgePage() {
                 <CardHeader className="pb-3 border-b border-border/50">
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-base font-medium text-white group-hover:text-primary transition-colors line-clamp-1">
-                      {meta.title || `Documento #${doc.id}`}
+                      {meta.title ||
+                        (doc.content
+                          ? doc.content.substring(0, 20) + '...'
+                          : 'Documento sem título')}
                     </CardTitle>
                     <FileText className="w-4 h-4 text-muted-foreground opacity-50" />
                   </div>

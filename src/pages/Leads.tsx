@@ -125,22 +125,60 @@ export default function LeadsPage() {
     switch (status) {
       case 'em_atendimento':
         return (
-          <Badge className="bg-primary/20 text-primary border-primary/30">Em Atendimento</Badge>
+          <Badge className="bg-[#8A2BE2]/20 text-[#8A2BE2] hover:bg-[#8A2BE2]/30 border-[#8A2BE2]/30">
+            Em Atendimento
+          </Badge>
         )
       case 'Transferido':
         return (
-          <Badge className="bg-orange-500/20 text-orange-500 border-orange-500/30 animate-pulse">
+          <Badge className="bg-orange-500/20 text-orange-500 hover:bg-orange-500/30 border-orange-500/30 animate-pulse">
             Transferido
           </Badge>
         )
       case 'finalizado':
-        return <Badge className="bg-cyan-500/20 text-cyan-500 border-cyan-500/30">Finalizado</Badge>
+      case 'Fechado':
+        return (
+          <Badge className="bg-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00]/30 border-[#00FF00]/30">
+            {status}
+          </Badge>
+        )
       case 'ativo':
-        return <Badge className="bg-secondary/20 text-secondary border-secondary/30">Ativo</Badge>
+        return (
+          <Badge className="bg-[#00FF00]/20 text-[#00FF00] hover:bg-[#00FF00]/30 border-[#00FF00]/30">
+            Ativo
+          </Badge>
+        )
+      case 'Novo Lead':
+      case 'Novo':
+        return (
+          <Badge className="bg-[#FFFFFF]/20 text-[#FFFFFF] hover:bg-[#FFFFFF]/30 border-[#FFFFFF]/30">
+            {status}
+          </Badge>
+        )
+      case 'Em Contato':
+        return (
+          <Badge className="bg-[#8A2BE2]/20 text-[#8A2BE2] hover:bg-[#8A2BE2]/30 border-[#8A2BE2]/30">
+            Em Contato
+          </Badge>
+        )
+      case 'Proposta Enviada':
+      case 'Perdido':
+      case 'Expirado':
+        return (
+          <Badge className="bg-[#333333]/40 text-muted-foreground hover:bg-[#333333]/50 border-[#333333]/50">
+            {status}
+          </Badge>
+        )
+      case 'inativo':
+        return (
+          <Badge className="bg-red-500/20 text-red-500 hover:bg-red-500/30 border-red-500/30">
+            Inativo
+          </Badge>
+        )
       default:
         return (
           <Badge variant="outline" className="text-muted-foreground border-muted-foreground/30">
-            Inativo
+            {status || 'Inativo'}
           </Badge>
         )
     }
@@ -275,9 +313,16 @@ export default function LeadsPage() {
                     <SelectContent className="bg-card border-border text-white">
                       <SelectItem value="ativo">Ativo</SelectItem>
                       <SelectItem value="em_atendimento">Em Atendimento</SelectItem>
-                      <SelectItem value="Transferido">Transferido (Humano)</SelectItem>
+                      <SelectItem value="Transferido">Transferido</SelectItem>
                       <SelectItem value="finalizado">Finalizado</SelectItem>
                       <SelectItem value="inativo">Inativo</SelectItem>
+                      <SelectItem value="Novo Lead">Novo Lead</SelectItem>
+                      <SelectItem value="Em Contato">Em Contato</SelectItem>
+                      <SelectItem value="Proposta Enviada">Proposta Enviada</SelectItem>
+                      <SelectItem value="Fechado">Fechado</SelectItem>
+                      <SelectItem value="Perdido">Perdido</SelectItem>
+                      <SelectItem value="Expirado">Expirado</SelectItem>
+                      <SelectItem value="Novo">Novo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
