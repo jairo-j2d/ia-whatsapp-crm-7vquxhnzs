@@ -68,7 +68,7 @@ export default function LeadsPage() {
       isMounted = false
       if (channelRef.current) {
         try {
-          supabase.removeChannel(channelRef.current)
+          void supabase.removeChannel(channelRef.current)
         } catch (err) {
           console.error('Error in deterministic cleanup:', err)
         }
