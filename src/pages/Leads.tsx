@@ -38,12 +38,21 @@ export default function LeadsPage() {
   const { toast } = useToast()
 
   useEffect(() => {
+    let isMounted = true
+
     fetchLeads()
+
     const channel = leadsService.subscribeToLeads(() => {
-      fetchLeads()
+      if (isMounted) {
+        fetchLeads()
+      }
     })
+
     return () => {
-      leadsService.unsubscribeLeads(channel)
+      isMounted = false
+      if (channel) {
+        leadsService.unsubscribeLeads(channel)
+      }
     }
   }, [])
 
