@@ -62,13 +62,11 @@ export default function Index() {
   useEffect(() => {
     fetchLeads()
 
-    const subscription = leadsService.subscribeToLeads((payload) => {
+    const intervalId = setInterval(() => {
       fetchLeads()
-    })
+    }, 30000)
 
-    return () => {
-      subscription.then((sub) => sub.unsubscribe())
-    }
+    return () => clearInterval(intervalId)
   }, [])
 
   const fetchLeads = async () => {
