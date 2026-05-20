@@ -42,8 +42,12 @@ export const leadsService = {
   subscribeToLeads(callback: (payload: any) => void) {
     const activeChannels = supabase.getChannels()
     activeChannels.forEach((ch) => {
-      if (ch.topic && ch.topic.includes('leads-changes-')) {
-        supabase.removeChannel(ch).catch(console.error)
+      if (ch && ch.topic && ch.topic.includes('leads-changes-')) {
+        try {
+          supabase.removeChannel(ch)
+        } catch (error) {
+          console.error(error)
+        }
       }
     })
 
@@ -62,10 +66,10 @@ export const leadsService = {
     return channel
   },
 
-  async unsubscribeLeads(channel: any) {
+  unsubscribeLeads(channel: any) {
     if (channel) {
       try {
-        await supabase.removeChannel(channel)
+        supabase.removeChannel(channel)
       } catch (error) {
         console.error('Error removing channel:', error)
       }
