@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { leadsService, Lead } from '@/services/leads'
-import { memoryService, Memory } from '@/services/memory'
+import { memoryService, ChatHistory } from '@/services/memory'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Search, Filter, Phone, Clock, User, MessageSquare, Activity } from 'lucide-react'
@@ -32,8 +32,9 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('Todos')
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
-  const [memories, setMemories] = useState<Memory[]>([])
+  const [memories, setMemories] = useState<ChatHistory[]>([])
   const [loadingMemories, setLoadingMemories] = useState(false)
   const { toast } = useToast()
 
@@ -66,7 +67,7 @@ export default function LeadsPage() {
     setLoadingMemories(true)
     try {
       // Assuming session_id maps to phone number in the schema
-      const data = await memoryService.getMemoryBySession(phone)
+      const data = await memoryService.getChatLogsBySession(phone)
       setMemories(data)
     } catch (error) {
       toast({ title: 'Erro', description: 'Falha ao carregar histórico', variant: 'destructive' })
@@ -96,14 +97,29 @@ export default function LeadsPage() {
     }
   }
 
+  const statusesList = useMemo(() => {
+    const statuses = new Set(leads.map((l) => l.status).filter(Boolean))
+    return ['Todos', ...Array.from(statuses)] as string[]
+  }, [leads])
+
   const filteredLeads = useMemo(() => {
-    if (!search) return leads
-    const lowerSearch = search.toLowerCase()
-    return leads.filter(
-      (l) =>
-        l.nome?.toLowerCase().includes(lowerSearch) || l.phone?.toLowerCase().includes(lowerSearch),
-    )
-  }, [leads, search])
+    let result = leads
+
+    if (statusFilter !== 'Todos') {
+      result = result.filter((l) => l.status === statusFilter)
+    }
+
+    if (search) {
+      const lowerSearch = search.toLowerCase()
+      result = result.filter(
+        (l) =>
+          l.nome?.toLowerCase().includes(lowerSearch) ||
+          l.phone?.toLowerCase().includes(lowerSearch),
+      )
+    }
+
+    return result
+  }, [leads, search, statusFilter])
 
   const getStatusBadge = (status: string | null) => {
     switch (status) {
@@ -147,9 +163,20 @@ export default function LeadsPage() {
               className="pl-9 bg-black/50 border-border text-white focus-visible:ring-primary"
             />
           </div>
-          <div className="flex items-center space-x-2 text-muted-foreground text-sm">
-            <Filter className="w-4 h-4" />
-            <span>Filtros ativos: Nenhum</span>
+          <div className="flex items-center space-x-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px] bg-black/50 border-border text-white focus-visible:ring-primary text-sm h-9">
+                <SelectValue placeholder="Filtrar por Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border text-white">
+                {statusesList.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-auto">
@@ -206,7 +233,7 @@ export default function LeadsPage() {
               ) : (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
-                    Nenhum lead encontrado com estes filtros.
+                    Nenhum dado encontrado
                   </td>
                 </tr>
               )}
@@ -270,7 +297,10 @@ export default function LeadsPage() {
                     <div className="space-y-4 pb-4">
                       {memories.map((mem) => {
                         const msg = mem.message as any
-                        const isAi = msg?.type === 'ai'
+                        // Sometimes message is in `msg.data.content` for n8n format
+                        const isAi = msg?.type === 'ai' || msg?.id?.includes('AIMessage')
+                        const content = msg?.text || msg?.data?.content || JSON.stringify(msg)
+
                         return (
                           <div
                             key={mem.id}
@@ -287,7 +317,7 @@ export default function LeadsPage() {
                                   : 'bg-white/10 text-gray-200 rounded-tl-sm border border-white/5',
                               )}
                             >
-                              {msg?.text || JSON.stringify(msg)}
+                              {content}
                             </div>
                             <span className="text-[10px] text-muted-foreground mt-1 opacity-70">
                               {isAi ? 'Agente IA' : 'Lead'}

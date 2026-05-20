@@ -90,6 +90,16 @@ export default function Index() {
     return ['Todos', ...Array.from(resps)] as string[]
   }, [leads])
 
+  const leadTypesList = useMemo(() => {
+    const types = new Set(leads.map((l) => l.lead_type).filter(Boolean))
+    return ['Todos', ...Array.from(types)] as string[]
+  }, [leads])
+
+  const leadSourcesList = useMemo(() => {
+    const sources = new Set(leads.map((l) => l.lead_source).filter(Boolean))
+    return ['Todos', ...Array.from(sources)] as string[]
+  }, [leads])
+
   // Filtered Leads
   const filteredLeads = useMemo(() => {
     let result = leads
@@ -459,10 +469,14 @@ export default function Index() {
     () => aiClosedLeads.reduce((acc, l) => acc + (Number(l.sale_value) || 0), 0),
     [aiClosedLeads],
   )
-  const formattedTotalSales = new Intl.NumberFormat('pt-BR', {
+  const avgSaleValue = useMemo(
+    () => (aiClosedLeads.length > 0 ? totalSalesValue / aiClosedLeads.length : 0),
+    [aiClosedLeads, totalSalesValue],
+  )
+  const formattedAvgSales = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(totalSalesValue)
+  }).format(avgSaleValue)
 
   const avgConversionTimeDays = useMemo(() => {
     const conversionTimes = aiClosedLeads
@@ -541,9 +555,17 @@ export default function Index() {
                   <SelectValue placeholder="Tipo de Lead" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-white">
-                  <SelectItem value="Todos">Todos</SelectItem>
-                  <SelectItem value="Novo">Novo</SelectItem>
-                  <SelectItem value="Existente">Existente</SelectItem>
+                  {leadTypesList.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                  {leadTypesList.length === 1 && (
+                    <>
+                      <SelectItem value="Novo">Novo</SelectItem>
+                      <SelectItem value="Existente">Existente</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -571,9 +593,14 @@ export default function Index() {
                   <SelectValue placeholder="Origem" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border text-white">
-                  <SelectItem value="Todos">Todos</SelectItem>
-                  <SelectItem value="Agente IA">Agente IA</SelectItem>
-                  <SelectItem value="Outros">Outros</SelectItem>
+                  {leadSourcesList.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                  {leadSourcesList.length === 1 && (
+                    <SelectItem value="Agente IA">Agente IA</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1079,12 +1106,12 @@ export default function Index() {
           <Card className="bg-black border-[#00FF00]/30 shadow-[0_4px_20px_-2px_rgba(0,255,0,0.15)] rounded-lg">
             <CardContent className="p-6 flex flex-row items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Vendas Geradas (IA)</p>
+                <p className="text-sm font-medium text-muted-foreground">Ticket Médio (IA)</p>
                 <p
                   className="text-3xl font-bold text-[#00FF00] truncate max-w-[150px]"
-                  title={formattedTotalSales}
+                  title={formattedAvgSales}
                 >
-                  {formattedTotalSales}
+                  {formattedAvgSales}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-full bg-[#00FF00]/10 flex items-center justify-center border border-[#00FF00]/20">
@@ -1332,7 +1359,7 @@ export default function Index() {
                 {recentLeads.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                      Nenhum lead encontrado com os filtros selecionados.
+                      Nenhum dado encontrado
                     </td>
                   </tr>
                 )}

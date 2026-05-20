@@ -141,9 +141,7 @@ export default function KnowledgePage() {
           })}
           {documents.length === 0 && (
             <div className="col-span-full text-center py-12 border border-dashed border-border rounded-lg">
-              <p className="text-muted-foreground">
-                Nenhum documento encontrado na base de conhecimento.
-              </p>
+              <p className="text-muted-foreground">Nenhum dado encontrado</p>
             </div>
           )}
         </div>
