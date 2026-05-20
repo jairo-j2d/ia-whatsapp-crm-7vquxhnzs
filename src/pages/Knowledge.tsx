@@ -12,6 +12,14 @@ export default function KnowledgePage() {
   useEffect(() => {
     fetchDocuments()
     fetchStats()
+
+    const channel = documentsService.subscribeToDocuments(() => {
+      fetchDocuments()
+    })
+
+    return () => {
+      documentsService.unsubscribeDocuments(channel)
+    }
   }, [])
 
   const fetchDocuments = async () => {
