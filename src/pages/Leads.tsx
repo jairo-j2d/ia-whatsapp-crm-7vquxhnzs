@@ -1,7 +1,6 @@
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { leadsService, Lead } from '@/services/leads'
 import { memoryService, Memory } from '@/services/memory'
-import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Search, Filter, Phone, Clock, User, MessageSquare, Activity } from 'lucide-react'
@@ -38,55 +37,26 @@ export default function LeadsPage() {
   const [loadingMemories, setLoadingMemories] = useState(false)
   const { toast } = useToast()
 
-  const isSubscribing = useRef(false)
-  const channelRef = useRef<any>(null)
-
   useEffect(() => {
-    let isMounted = true
+    const fetchLeads = async () => {
+      try {
+        const data = await leadsService.getLeads()
+        setLeads(data)
+      } catch (error) {
+        toast({ title: 'Erro', description: 'Falha ao carregar leads', variant: 'destructive' })
+      } finally {
+        setLoading(false)
+      }
+    }
 
     fetchLeads()
 
-    if (isSubscribing.current || channelRef.current) {
-      return
-    }
+    const intervalId = setInterval(() => {
+      fetchLeads()
+    }, 30000)
 
-    isSubscribing.current = true
-
-    try {
-      const channel = leadsService.subscribeToLeads(() => {
-        if (isMounted) {
-          fetchLeads()
-        }
-      })
-
-      channelRef.current = channel
-    } finally {
-      isSubscribing.current = false
-    }
-
-    return () => {
-      isMounted = false
-      if (channelRef.current) {
-        try {
-          void supabase.removeChannel(channelRef.current)
-        } catch (err) {
-          console.error('Error in deterministic cleanup:', err)
-        }
-        channelRef.current = null
-      }
-    }
-  }, [])
-
-  const fetchLeads = async () => {
-    try {
-      const data = await leadsService.getLeads()
-      setLeads(data)
-    } catch (error) {
-      toast({ title: 'Erro', description: 'Falha ao carregar leads', variant: 'destructive' })
-    } finally {
-      setLoading(false)
-    }
-  }
+    return () => clearInterval(intervalId)
+  }, [toast])
 
   const fetchMemory = async (phone: string | null) => {
     if (!phone) {

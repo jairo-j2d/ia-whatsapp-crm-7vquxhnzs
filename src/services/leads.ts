@@ -38,45 +38,4 @@ export const leadsService = {
     if (error) throw error
     return data as Lead
   },
-
-  subscribeToLeads(callback: (payload: any) => void) {
-    const activeChannels = supabase.getChannels()
-    activeChannels.forEach((ch) => {
-      if (ch && ch.topic && ch.topic.includes('leads-changes-')) {
-        try {
-          void supabase.removeChannel(ch)
-        } catch (error) {
-          console.error(error)
-        }
-      }
-    })
-
-    const channelId = `leads-changes-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-
-    const channel = supabase.channel(channelId)
-
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'LeadsWA' }, callback)
-
-    channel.on('system', { event: '*' }, (payload) => {
-      if (payload.status === 'SUBSCRIBED') {
-        console.log('Successfully subscribed to leads channel')
-      } else if (payload.status === 'CHANNEL_ERROR') {
-        console.error('Supabase Realtime subscription error:', payload)
-      }
-    })
-
-    channel.subscribe()
-
-    return channel
-  },
-
-  unsubscribeLeads(channel: any) {
-    if (channel) {
-      try {
-        void supabase.removeChannel(channel)
-      } catch (error) {
-        console.error('Error removing channel:', error)
-      }
-    }
-  },
 }
